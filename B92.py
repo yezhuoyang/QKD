@@ -4,11 +4,15 @@ Simulate the B92 Protocol
 import numpy as np
 from qutip import *
 from random import randint
+from qutip.measurement import measure
 
 Hstate = basis(2, 0)
 Vstate = basis(2, 1)
 Pstate = 1 / np.sqrt(2) * (Hstate + Vstate)
 Mstate = 1 / np.sqrt(2) * (Hstate - Vstate)
+
+project_V = ket2dm(Vstate)
+project_D = ket2dm(Mstate)
 
 '''
 Input Np: An integer which is the number of bits that Alice send to Bob
@@ -25,14 +29,11 @@ def Alice(Np: int):
     randomnum = randint(0, (1 << (Np)) - 1)
     randomnum = randomnum | (1 << Np)
     bin_str = bin(randomnum)[2:]
-    index = 1
-    print(bin_str)
-    for i in range(0, Np):
-        if bin_str[i] == '0':
+    for index in range(0, Np):
+        if bin_str[index] == '0':
             result.append((index, Hstate))
         else:
             result.append((index, Pstate))
-        index += 1
     return result
 
 
@@ -44,12 +45,38 @@ is the index (event number) and the second column is the bit that Bob thinks Ali
 '''
 
 
-def Bob(table):
-    return
+def Bob(result):
+    Np = len(result)
+    randomnum = randint(0, (1 << Np) - 1)
+    randomnum = randomnum | (1 << Np)
+    bin_str = bin(randomnum)[2:]
+    output = []
+    for (index, Qstate) in result:
+        if bin_str[index] == '0':
+            value, new_state = measure(Qstate, project_V)
+            # When the value
+            if round(value) == 1:
+                output.append((index, 1))
+        else:
+            value, new_state = measure(Qstate, project_D)
+            if round(value) == 1:
+                output.append((index, 0))
+    return output
 
 
 def private_key(photonnum: int):
-    return
+    key_list = Bob(Alice(photonnum))
+    key = ''
+    for (index, value) in key_list:
+        if value == 1:
+            key = key + '1'
+        else:
+            key = key + '0'
+    '''
+    Use first half of the string to verify the channel
+    '''
+    verifylength=(len(key_list)//2)
+    return key[verifylength:]
 
 
 def Eve():
@@ -57,4 +84,5 @@ def Eve():
 
 
 if __name__ == "__main__":
-    result = Alice(10)
+    result = private_key(100)
+    print(result)

@@ -28,6 +28,9 @@ def Alice(Np: int):
     result = []
     randomnum = randint(0, (1 << (Np)) - 1)
     randomnum = randomnum | (1 << Np)
+    '''
+    Here the bin_str is generated randomly
+    '''
     bin_str = bin(randomnum)[2:]
     bin_str = bin_str[:Np]
     for index in range(0, Np):

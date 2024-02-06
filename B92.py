@@ -29,17 +29,17 @@ def Alice(Np: int):
     randomnum = randint(0, (1 << (Np)) - 1)
     randomnum = randomnum | (1 << Np)
     bin_str = bin(randomnum)[2:]
+    bin_str = bin_str[:Np]
     for index in range(0, Np):
         if bin_str[index] == '0':
             result.append((index, Hstate))
         else:
             result.append((index, Pstate))
-    return result
+    return bin_str, result
 
 
 '''
 Input: A table generate by Alice function.
-
 Return: (Only return the events where he gets a click) A list with two columns, the first column
 is the index (event number) and the second column is the bit that Bob thinks Alice sent
 '''
@@ -47,6 +47,11 @@ is the index (event number) and the second column is the bit that Bob thinks Ali
 
 def Bob(result):
     Np = len(result)
+    '''
+    The random binary string denotes 
+    the basis of measurement that Bob 
+    Use to measure
+    '''
     randomnum = randint(0, (1 << Np) - 1)
     randomnum = randomnum | (1 << Np)
     bin_str = bin(randomnum)[2:]
@@ -54,18 +59,19 @@ def Bob(result):
     for (index, Qstate) in result:
         if bin_str[index] == '0':
             value, new_state = measure(Qstate, project_V)
-            # When the value
+            # When there is a click, Bob is sure he is measuring P and the data is 1
             if round(value) == 1:
                 output.append((index, 1))
         else:
             value, new_state = measure(Qstate, project_D)
+            # When there is a click, Bob is sure he is measuring H and the data is 0
             if round(value) == 1:
                 output.append((index, 0))
     return output
 
 
 def private_key(photonnum: int):
-    key_list = Bob(Alice(photonnum))
+    key_list = Bob(Alice(photonnum)[1])
     key = ''
     for (index, value) in key_list:
         if value == 1:
@@ -75,14 +81,77 @@ def private_key(photonnum: int):
     '''
     Use first half of the string to verify the channel
     '''
-    verifylength=(len(key_list)//2)
+    verifylength = (len(key_list) // 2)
     return key[verifylength:]
 
 
-def Eve():
-    return
+'''
+The eve has the same output as Bob has.
+He will fabricate the result and send it to Bob
+'''
+
+
+def Eve(result):
+    Np = len(result)
+    fabricated_result = []
+    hacked_info = []
+    '''
+    The random binary string that Eve 
+    use the hack the quantum data
+    '''
+    randomnum = randint(0, (1 << Np) - 1)
+    randomnum = randomnum | (1 << Np)
+    bin_str = bin(randomnum)[2:]
+
+    for (index, Qstate) in result:
+        if bin_str[index] == '0':
+            value, new_state = measure(Qstate, project_V)
+            # When there is a click, Eve is sure he is measuring P and the data is 1
+            if round(value) == 1:
+                hacked_info.append((index, 1))
+                fabricated_result.append((index, Pstate))
+            else:
+                '''
+                If the Eve make a wrong guess, he has to decide which state to
+                generate and send to Bob
+                Now Eve measure 0 on V projector, the state can be both H or P
+                However, it is more likely that the state is in H.
+                '''
+                fabricated_result.append((index, Hstate))
+        else:
+            value, new_state = measure(Qstate, project_D)
+            # When there is a click, Bob is sure he is measuring H and the data is 0
+            if round(value) == 1:
+                hacked_info.append((index, 0))
+                fabricated_result.append((index, Hstate))
+            else:
+                '''
+                If the Eve make a wrong guess, he has to decide which state to
+                generate and send to Bob
+                Now Eve measure 0 on M projector, the state can be both H or P
+                However, it is more likely that the state is in P.
+                '''
+                fabricated_result.append((index, Pstate))
+    return fabricated_result
+
+
+def success_rate(original_str, check_list):
+    Ncheck = len(check_list)
+    Nsuccess = 0
+    for (index, data) in check_list:
+        if str(data) == original_str[index]:
+            Nsuccess += 1
+    return Nsuccess / Ncheck
+
+
+def error_with_eve(Np):
+    bin_str, result = Alice(Np)
+    fabricated_result=Eve(result)
+    output = Bob(fabricated_result)
+    L = len(output)
+    rate = success_rate(bin_str, output[:(L // 2)])
+    return 1-rate
 
 
 if __name__ == "__main__":
-    result = private_key(100)
-    print(result)
+    print(error_with_eve(100))

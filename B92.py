@@ -5,6 +5,8 @@ import numpy as np
 from qutip import *
 from random import randint
 from qutip.measurement import measure
+from util import create_random_binary_string
+
 
 Hstate = basis(2, 0)
 Vstate = basis(2, 1)
@@ -26,13 +28,7 @@ The second column is a qutip quantum object that
 
 def Alice(Np: int):
     result = []
-    randomnum = randint(0, (1 << (Np)) - 1)
-    randomnum = randomnum | (1 << Np)
-    '''
-    Here the bin_str is generated randomly
-    '''
-    bin_str = bin(randomnum)[2:]
-    bin_str = bin_str[:Np]
+    bin_str=create_random_binary_string(Np)
     for index in range(0, Np):
         if bin_str[index] == '0':
             result.append((index, Hstate))
@@ -55,9 +51,7 @@ def Bob(result):
     the basis of measurement that Bob 
     Use to measure
     '''
-    randomnum = randint(0, (1 << Np) - 1)
-    randomnum = randomnum | (1 << Np)
-    bin_str = bin(randomnum)[2:]
+    bin_str=create_random_binary_string(Np)
     output = []
     for (index, Qstate) in result:
         if bin_str[index] == '0':
@@ -102,9 +96,7 @@ def Eve(result):
     The random binary string that Eve 
     use the hack the quantum data
     '''
-    randomnum = randint(0, (1 << Np) - 1)
-    randomnum = randomnum | (1 << Np)
-    bin_str = bin(randomnum)[2:]
+    bin_str=create_random_binary_string(Np)
 
     for (index, Qstate) in result:
         if bin_str[index] == '0':

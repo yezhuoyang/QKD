@@ -5,6 +5,7 @@ import numpy as np
 from qutip import *
 from random import randint
 from qutip.measurement import measure
+from util import create_random_binary_string
 
 Hstate = basis(2, 0)
 Vstate = basis(2, 1)
@@ -29,10 +30,7 @@ def Alice(Np: int):
     Generate a random binary string as the 
     information to send to Bob
     '''
-    randomnum = randint(0, (1 << (Np)) - 1)
-    randomnum = randomnum | (1 << Np)
-    bin_str = bin(randomnum)[2:]
-    bin_str = bin_str[:Np]
+    bin_str = create_random_binary_string(Np)
     '''
     Generate another random binary string as 
     basis Alice use to encode each digit 
@@ -42,10 +40,7 @@ def Alice(Np: int):
     When basis_str[index]=1, Alice will use PM basis to 
     encode the data digit
     '''
-    randomnum2 = randint(0, (1 << (Np)) - 1)
-    randomnum2 = randomnum2 | (1 << Np)
-    basis_str = bin(randomnum2)[2:]
-    basis_str = basis_str[:Np]
+    basis_str = create_random_binary_string(Np)
 
     for index in range(0, Np):
         '''
@@ -81,10 +76,7 @@ def Bob(result):
     the basis of measurement that Bob 
     Use to measure
     '''
-    randomnum = randint(0, (1 << (Np)) - 1)
-    randomnum = randomnum | (1 << Np)
-    basis_str = bin(randomnum)[2:]
-    basis_str = basis_str[:Np]
+    basis_str = create_random_binary_string(Np)
     output = []
     for (index, Qstate) in result:
         '''
@@ -121,10 +113,7 @@ def Eve(result):
     the basis of measurement that Eve 
     Use to hack
     '''
-    randomnum = randint(0, (1 << (Np)) - 1)
-    randomnum = randomnum | (1 << Np)
-    basis_str = bin(randomnum)[2:]
-    basis_str = basis_str[:Np]
+    basis_str = create_random_binary_string(Np)
     fabricate_result = []
     hacked_info = []
     for (index, Qstate) in result:
@@ -208,7 +197,7 @@ def secrete_key(Np):
 
 def error_with_eve(Np):
     bin_str, basis_Alice, result = Alice(Np)
-    fab_result=result
+    fab_result = result
     #fab_result = Eve(result)
     basis_Bob, output = Bob(fab_result)
     correct_index = compare_basis(basis_Alice, basis_Bob, Np)

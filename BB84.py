@@ -6,14 +6,8 @@ from qutip import *
 from random import randint
 from qutip.measurement import measure
 from util import create_random_binary_string
+from util import Hstate,Vstate, Pstate, Mstate, project_D,project_V
 
-Hstate = basis(2, 0)
-Vstate = basis(2, 1)
-Pstate = 1 / np.sqrt(2) * (Hstate + Vstate)
-Mstate = 1 / np.sqrt(2) * (Hstate - Vstate)
-
-project_V = ket2dm(Vstate)
-project_D = ket2dm(Mstate)
 
 '''
 The convention for encoding:

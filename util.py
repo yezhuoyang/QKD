@@ -2,7 +2,7 @@ from random import randint
 from qutip import *
 import numpy as np
 
-Nmax = 10000
+Nmax = 100000
 
 
 def create_random_binary_string(Np: int):

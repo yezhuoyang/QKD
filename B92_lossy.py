@@ -19,6 +19,7 @@ def noisy_channel(signal: list, psuccess: float):
     for i in range(0, len(signal)):
         if dice_with_prob(psuccess):
             output_list.append(signal[i])
+    print(len(output_list) / len(signal))
     return output_list
 
 
@@ -55,18 +56,28 @@ def Bob(result):
     '''
     bin_str = create_random_binary_string(Np)
     output = []
+    received = []
+    pointer = 0
     for (index, Qstate, photon_num) in result:
-        if bin_str[index] == '0':
+        if bin_str[pointer] == '0':
             value, new_state = measure(Qstate, project_V)
             # When there is a click, Bob is sure he is measuring P and the data is 1
+
             if round(value) == 1:
                 output.append((index, 1))
+                received.append((index, 1))
+            else:
+                received.append((index, 0))
         else:
             value, new_state = measure(Qstate, project_D)
             # When there is a click, Bob is sure he is measuring H and the data is 0
             if round(value) == 1:
                 output.append((index, 0))
-    return output
+                received.append((index, 0))
+            else:
+                received.append((index, 0))
+        pointer += 1
+    return output, received
 
 
 def private_key(photonnum: int):
@@ -94,6 +105,13 @@ def Eve(result):
     return result
 
 
+'''
+Check the ratio of photons between:
+1. The number of photons Bob receive and use the same basis to measure. The measured data also match with Alice.
+2. The number of photons Bob receive and use the same basis to measure
+'''
+
+
 def success_rate(original_str, check_list):
     Ncheck = len(check_list)
     Nsuccess = 0
@@ -103,8 +121,27 @@ def success_rate(original_str, check_list):
     return Nsuccess / Ncheck
 
 
-def error_with_eve(Np, p2):
+def calc_channel_rate(Np, p2, pchannel):
     bin_str, result = Alice(Np, p2)
+    result = noisy_channel(result, pchannel)
+    fabricated_result = Eve(result)
+    output, received = Bob(fabricated_result)
+    '''
+    Bob send back half of the received data and measured result 
+    to Alice to check the correctness
+    '''
+    L = len(received)
+    check_data = received[:L//2]
+    '''
+    Alice estimate the channel loss
+    '''
+    maximum_index = check_data[-1][0]
+    return len(check_data) / maximum_index
+
+
+def error_with_eve(Np, p2, pchannel):
+    bin_str, result = Alice(Np, p2)
+    # result = noisy_channel(result, pchannel)
     fabricated_result = Eve(result)
     output = Bob(fabricated_result)
     L = len(output)
@@ -113,4 +150,4 @@ def error_with_eve(Np, p2):
 
 
 if __name__ == "__main__":
-    print(error_with_eve(10, 0.1))
+    print(calc_channel_rate(30000, 0.2, 0.1))

@@ -6,8 +6,7 @@ from qutip import *
 from random import randint
 from qutip.measurement import measure
 from util import create_random_binary_string
-from util import Hstate,Vstate, Pstate, Mstate, project_D,project_V
-
+from util import Hstate, Vstate, Pstate, Mstate, project_D, project_V
 
 '''
 Input Np: An integer which is the number of bits that Alice send to Bob
@@ -21,7 +20,7 @@ The second column is a qutip quantum object that
 
 def Alice(Np: int):
     result = []
-    bin_str=create_random_binary_string(Np)
+    bin_str = create_random_binary_string(Np)
     for index in range(0, Np):
         if bin_str[index] == '0':
             result.append((index, Hstate))
@@ -44,7 +43,7 @@ def Bob(result):
     the basis of measurement that Bob 
     Use to measure
     '''
-    bin_str=create_random_binary_string(Np)
+    bin_str = create_random_binary_string(Np)
     output = []
     for (index, Qstate) in result:
         if bin_str[index] == '0':
@@ -89,7 +88,7 @@ def Eve(result):
     The random binary string that Eve 
     use the hack the quantum data
     '''
-    bin_str=create_random_binary_string(Np)
+    bin_str = create_random_binary_string(Np)
 
     for (index, Qstate) in result:
         if bin_str[index] == '0':
@@ -134,11 +133,11 @@ def success_rate(original_str, check_list):
 
 def error_with_eve(Np):
     bin_str, result = Alice(Np)
-    fabricated_result=Eve(result)
+    fabricated_result = Eve(result)
     output = Bob(fabricated_result)
     L = len(output)
     rate = success_rate(bin_str, output[:(L // 2)])
-    return 1-rate
+    return 1 - rate
 
 
 if __name__ == "__main__":

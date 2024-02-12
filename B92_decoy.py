@@ -30,21 +30,40 @@ the same time.
 '''
 
 
-def Alice(Np: int, p2: float):
+def Alice(Np: int, p2: float, pdecoy: float):
     result = []
     data_str = create_random_binary_string(Np)
+    '''
+    Store the index of position in the list that
+    Alice generate a decoy state
+    '''
+    decoy_index = []
     for index in range(0, Np):
         if data_str[index] == '0':
-            if dice_with_prob(p2):
-                result.append((index, Hstate, 2))
+            if dice_with_prob(0.5):
+                if dice_with_prob(pdecoy):
+                    result.append((index, Hstate, 2))
+                else:
+                    result.append((index, Hstate, 1))
+                decoy_index.append(index)
             else:
-                result.append((index, Hstate, 1))
+                if dice_with_prob(p2):
+                    result.append((index, Hstate, 2))
+                else:
+                    result.append((index, Hstate, 1))
         else:
-            if dice_with_prob(p2):
-                result.append((index, Pstate, 2))
+            if dice_with_prob(0.5):
+                if dice_with_prob(pdecoy):
+                    result.append((index, Hstate, 2))
+                else:
+                    result.append((index, Hstate, 1))
+                decoy_index.append(index)
             else:
-                result.append((index, Pstate, 1))
-    return data_str, result
+                if dice_with_prob(p2):
+                    result.append((index, Pstate, 2))
+                else:
+                    result.append((index, Pstate, 1))
+    return data_str, result, decoy_index
 
 
 def Bob(result):
@@ -77,7 +96,7 @@ def Bob(result):
             else:
                 received.append((index, 0))
         pointer += 1
-    return output, received, basis_str
+    return output, received
 
 
 def private_key(key_output):
@@ -132,7 +151,7 @@ def Eve_hack_measure(bob_output_index, eve_memory):
                     secret_key = secret_key + "X"
         pointer += 1
     L = len(secret_key)
-    return secret_key[L//2:]
+    return secret_key[L // 2:]
 
 
 '''
@@ -146,8 +165,8 @@ He will use a photon number attack
 
 def Eve(result):
     '''
-    The random binary string denotes 
-    the basis of measurement that Eve 
+    The random binary string denotes
+    the basis of measurement that Eve
     Use to hack
     '''
     fabricate_result = []
@@ -181,7 +200,7 @@ def success_rate(original_str, check_list):
     return Nsuccess / Ncheck
 
 
-def calc_channel_rate(received):
+def calc_channel_rate(received, decoy_index):
     '''
     Bob send back half of the received data and measured result
     to Alice to check the correctness
@@ -190,13 +209,29 @@ def calc_channel_rate(received):
     check_data = received[:L // 2]
     '''
     Alice estimate the channel loss
+    Since she has already announced the indices for the decoy states,
+    she can now estimate the channel loss of the decoy state/ data state 
+    and general state independently.
     '''
+    decoy_data = []
+    for i in range(0, len(check_data)):
+        if check_data[i][0] in decoy_index:
+            decoy_data.append(check_data[i])
+
     maximum_index = check_data[-1][0]
-    return len(check_data) / maximum_index
+    '''
+    The ratio of the decoy_data should be half the original data
+    '''
+    decoy_success_rate = len(decoy_data) / (maximum_index // 2)
+
+    data_success_rate = (len(check_data) - len(decoy_data)) / (maximum_index // 2)
+
+    general_success_rate = len(check_data) / maximum_index
+    return decoy_success_rate, data_success_rate, general_success_rate
 
 
-def error_with_eve(Np, p2, pchannel):
-    data_str, result = Alice(Np, p2)
+def error_with_eve(Np, p2, p_decoy, pchannel):
+    data_str, result, decoy_index = Alice(Np, p2, p_decoy)
     result_theory = noisy_channel(result, pchannel)
     '''
     We assume that Eve can do anything, he has 
@@ -204,19 +239,34 @@ def error_with_eve(Np, p2, pchannel):
     '''
     fabricated_result, eve_memory = Eve(result)
 
-    output, revceived, bob_basis = Bob(fabricated_result)
+    output, revceived = Bob(fabricated_result)
 
     '''
     Bob must make the index that he makes successful measurement public
     '''
     output_index = [x[0] for x in output]
 
-    channel_rate = calc_channel_rate(revceived)
+    decoy_success_rate, data_success_rate, general_success_rate = calc_channel_rate(revceived, decoy_index)
+
+    print("Decoy success rate:%f" % decoy_success_rate)
+
+    print("Data success rate:%f" % data_success_rate)
+
+    print("general_success_rate:%f" % general_success_rate)
+
     '''
     Alice and Bob also run the simulation of a noisy lossy channel without Eve
     '''
-    output_theory, revceived_theory, bob_basis_theory = Bob(result_theory)
-    channel_rate_theory = calc_channel_rate(revceived_theory)
+    output_theory, revceived_theory = Bob(result_theory)
+
+    decoy_success_rate_theory, data_success_rate_theory, general_success_rate_theory = calc_channel_rate(
+        revceived_theory, decoy_index)
+
+    print("Decoy success rate in theory:%f" % decoy_success_rate_theory)
+
+    print("Data success rate in theory:%f" % data_success_rate_theory)
+
+    print("general_success_rate in theory:%f" % general_success_rate_theory)
 
     '''
     Use the first half of the measured data to check the 
@@ -237,7 +287,7 @@ def error_with_eve(Np, p2, pchannel):
     '''
     Eve now has all the basis that Bob use
     '''
-    eve_secret_key = Eve_hack_measure(output_index , eve_memory)
+    eve_secret_key = Eve_hack_measure(output_index, eve_memory)
     print(eve_secret_key)
 
     '''
@@ -246,9 +296,8 @@ def error_with_eve(Np, p2, pchannel):
     L_theory = len(output_theory)
     rate_theory = success_rate(data_str, output_theory[:(L_theory // 2)])
 
-    return 1 - rate, channel_rate, 1 - rate_theory, channel_rate_theory
+    return
 
 
 if __name__ == "__main__":
-    # rint(calc_channel_rate(1000, 0.2, 0.1))
-    print(error_with_eve(1000, 0.3, 0.1))
+    error_with_eve(1000, 0.05, 0.5, 0.1)

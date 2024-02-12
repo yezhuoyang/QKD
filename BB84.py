@@ -6,8 +6,7 @@ from qutip import *
 from random import randint
 from qutip.measurement import measure
 from util import create_random_binary_string
-from util import Hstate,Vstate, Pstate, Mstate, project_D,project_V
-
+from util import Hstate, Vstate, Pstate, Mstate, project_D, project_V
 
 '''
 The convention for encoding:
@@ -35,13 +34,14 @@ def Alice(Np: int):
     encode the data digit
     '''
     basis_str = create_random_binary_string(Np)
-
+    basis_str = basis_str.replace('0', '+')
+    basis_str = basis_str.replace('1', '/')
     for index in range(0, Np):
         '''
         Case1: Alice use HV basis to encode the data
         '''
-        if bin_str[index] == '0':
-            if basis_str[index] == '0':
+        if basis_str[index] == '+':
+            if bin_str[index] == '0':
                 result.append((index, Hstate))
             else:
                 result.append((index, Vstate))
@@ -49,7 +49,7 @@ def Alice(Np: int):
             '''
             Case2: Alice use PM basis to encode the data
             '''
-            if basis_str[index] == '0':
+            if bin_str[index] == '0':
                 result.append((index, Mstate))
             else:
                 result.append((index, Pstate))
@@ -71,6 +71,8 @@ def Bob(result):
     Use to measure
     '''
     basis_str = create_random_binary_string(Np)
+    basis_str = basis_str.replace('0', '+')
+    basis_str = basis_str.replace('1', '/')
     output = []
     for (index, Qstate) in result:
         '''
@@ -79,7 +81,7 @@ def Bob(result):
         When basis_str[index]=1, Bob will use PM basis to 
         measure the data digit.       
         '''
-        if basis_str[index] == '0':
+        if basis_str[index] == '+':
             value, new_state = measure(Qstate, project_V)
             if round(value) == 1:
                 output.append((index, 1))
@@ -87,7 +89,6 @@ def Bob(result):
                 output.append((index, 0))
         else:
             value, new_state = measure(Qstate, project_D)
-            # When there is a click, Bob is sure he is measuring H and the data is 0
             if round(value) == 1:
                 output.append((index, 0))
             else:
@@ -108,6 +109,8 @@ def Eve(result):
     Use to hack
     '''
     basis_str = create_random_binary_string(Np)
+    basis_str = basis_str.replace('0', '+')
+    basis_str = basis_str.replace('1', '/')
     fabricate_result = []
     hacked_info = []
     for (index, Qstate) in result:
@@ -117,7 +120,7 @@ def Eve(result):
         When basis_str[index]=1, Eve will use PM basis to 
         measure the data digit.       
         '''
-        if basis_str[index] == '0':
+        if basis_str[index] == '+':
             value, new_state = measure(Qstate, project_V)
             '''
             When Eve measure 1 in HV basis, he will fabricate a V
@@ -153,7 +156,7 @@ Return a list of index that two basis matches
 def compare_basis(basis_Alice, basis_Bob, Np):
     correct_index = []
     for i in range(0, Np):
-        if (basis_Alice[i] == basis_Bob[i]):
+        if basis_Alice[i] == basis_Bob[i]:
             correct_index.append(i)
     return correct_index
 
@@ -168,9 +171,9 @@ def success_rate(bin_str, output, correct_index):
     N_total = len(correct_index) // 2
     N_success = 0
     for i in range(0, N_total):
-        if bin_str[i] == '1' and output[i][1] == 1:
+        if bin_str[correct_index[i]] == '1' and output[correct_index[i]][1] == 1:
             N_success = N_success + 1
-        if bin_str[i] == '0' and output[i][1] == 0:
+        if bin_str[correct_index[i]] == '0' and output[correct_index[i]][1] == 0:
             N_success = N_success + 1
     return N_success / N_total
 
@@ -191,12 +194,11 @@ def secrete_key(Np):
 
 def error_with_eve(Np):
     bin_str, basis_Alice, result = Alice(Np)
-    fab_result = result
-    #fab_result = Eve(result)
+    fab_result = Eve(result)
     basis_Bob, output = Bob(fab_result)
     correct_index = compare_basis(basis_Alice, basis_Bob, Np)
     return 1 - success_rate(bin_str, output, correct_index)
 
 
 if __name__ == "__main__":
-    print(error_with_eve(100))
+    print(error_with_eve(40))

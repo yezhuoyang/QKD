@@ -5,11 +5,13 @@ import numpy as np
 Nmax = 100000
 
 
-def create_random_binary_string(Np: int):
-    randomnum = randint(0, (1 << (Np)) - 1)
-    randomnum = randomnum | (1 << Np)
-    bin_str = bin(randomnum)[2:]
-    bin_str = bin_str[:Np]
+def create_random_binary_string(Np):
+    bin_str=""
+    for i in range(0,Np):
+        if dice_with_prob(0.5):
+            bin_str=bin_str+'0'
+        else:
+            bin_str=bin_str+'1'
     return bin_str
 
 
